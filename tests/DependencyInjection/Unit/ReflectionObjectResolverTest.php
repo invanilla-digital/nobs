@@ -9,10 +9,12 @@ use Invanilla\Nobs\Tests\DependencyInjection\Stubs\TestClassWithAnOptionalString
 use Invanilla\Nobs\Tests\DependencyInjection\Stubs\TestClassWithAnOptionalStringArgumentAndObjectDependency;
 use Invanilla\Nobs\Tests\DependencyInjection\Stubs\TestClassWithAnUntypedConstructorArgument;
 use Invanilla\Nobs\Tests\DependencyInjection\Stubs\TestClassWithCircularDependency;
+use Invanilla\Nobs\Tests\DependencyInjection\Stubs\TestClassWithCircularDependencyNestedDeeply;
 use Invanilla\Nobs\Tests\DependencyInjection\Stubs\TestClassWithMultipleLevelsOfDependencies;
 use Invanilla\Nobs\Tests\DependencyInjection\Stubs\TestClassWithConstructorWithoutDependencies;
 use Invanilla\Nobs\Tests\DependencyInjection\Stubs\TestClassWithNoConstructor;
 use Invanilla\Nobs\Tests\DependencyInjection\Stubs\TestClassWithOneLevelOfDependencies;
+use Invanilla\Nobs\Tests\DependencyInjection\Stubs\TestClassWithTwoDependenciesRequiringTheSameDependency;
 use Invanilla\Nobs\Tests\DependencyInjection\Stubs\TestInterfaceToBeUsedAsAccessor;
 use PHPUnit\Framework\TestCase;
 
@@ -91,7 +93,7 @@ class ReflectionObjectResolverTest extends TestCase
     {
         $this->expectException(CircularDependencyException::class);
         $this->expectExceptionMessage(
-            'Class Invanilla\Nobs\Tests\DependencyInjection\Stubs\TestClassWithCircularDependency contains nested circular dependency'
+            'Circular dependency detected in following chain: Invanilla\Nobs\Tests\DependencyInjection\Stubs\TestClassWithCircularDependency -> Invanilla\Nobs\Tests\DependencyInjection\Stubs\TestClassWithCircularDependency'
         );
 
         $this->objectResolver->resolveInstance(TestClassWithCircularDependency::class);
@@ -132,5 +134,24 @@ class ReflectionObjectResolverTest extends TestCase
 
         self::assertInstanceOf(TestClassWithAnUntypedConstructorArgument::class, $instance);
         self::assertNull($instance->untypedArgument);
+    }
+
+    public function testItThrowsIfDeeplyNestedCircularDependencyIsDetected(): void
+    {
+        $this->expectException(CircularDependencyException::class);
+        $this->expectExceptionMessage(
+            'Circular dependency detected in following chain: Invanilla\Nobs\Tests\DependencyInjection\Stubs\TestClassThatActsAsIntermediateForANestedClassWithCircularDependency -> Invanilla\Nobs\Tests\DependencyInjection\Stubs\TestClassThatHasDependencyOnClassOnUpperLevel -> Invanilla\Nobs\Tests\DependencyInjection\Stubs\TestClassWithCircularDependencyNestedDeeply -> Invanilla\Nobs\Tests\DependencyInjection\Stubs\TestClassThatActsAsIntermediateForANestedClassWithCircularDependency'
+        );
+
+        $this->objectResolver->resolveInstance(TestClassWithCircularDependencyNestedDeeply::class);
+    }
+
+    public function testItCanResolveInstanceWhenObjectOfTheSameInstanceIsReferencedMultipleTimes(): void
+    {
+        $instance = $this->objectResolver->resolveInstance(
+            TestClassWithTwoDependenciesRequiringTheSameDependency::class
+        );
+
+        self::assertInstanceOf(TestClassWithTwoDependenciesRequiringTheSameDependency::class, $instance);
     }
 }

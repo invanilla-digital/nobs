@@ -90,4 +90,16 @@ class CollectionTest extends TestCase
             isset($this->collection['i should not exist'])
         );
     }
+
+    public function testToArray(): void
+    {
+        self::assertSame(
+            [
+                'code' => 'is good',
+                'php' => 'is love',
+                'frameworks' => 'too many'
+            ],
+            $this->collection->toArray()
+        );
+    }
 }

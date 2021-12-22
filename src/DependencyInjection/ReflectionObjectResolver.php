@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Invanilla\Nobs\DependencyInjection;
 
+use Invanilla\Nobs\Container\Container;
 use Invanilla\Nobs\DependencyInjection\Exception\CircularDependencyException;
+use Invanilla\Nobs\DependencyInjection\State\DependencyTracker;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
@@ -16,16 +18,20 @@ use ReflectionParameter;
 class ReflectionObjectResolver implements ObjectResolverInterface
 {
     public function __construct(
-        private readonly ContainerInterface $container
+        private readonly Container $container
     ) {
     }
 
     /**
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
-     * @throws ReflectionException
      */
     public function resolveInstance(string $className)
+    {
+        return $this->resolveWithTracking($className, new DependencyTracker());
+    }
+
+    private function resolveWithTracking(string $className, DependencyTracker $dependencyTracker)
     {
         // When something is explicitly defined on container as null, null should be returned
         if ($this->container->has($className)) {
@@ -36,31 +42,52 @@ class ReflectionObjectResolver implements ObjectResolverInterface
         $constructor = $reflection->getConstructor();
 
         if ($constructor === null) {
-            return $reflection->newInstance();
+            return $this->storeDependency($className, $reflection->newInstance());
         }
 
         $requiredDependencyParams = $constructor->getParameters();
 
         if ($requiredDependencyParams === []) {
-            return $reflection->newInstance();
+            return $this->storeDependency($className, $reflection->newInstance());
         }
 
-        $requiredDependencies = $this->resolveInstanceDependencies($className, $requiredDependencyParams);
+        $requiredDependencies = $this->resolveInstanceDependencies(
+            $requiredDependencyParams,
+            $dependencyTracker
+        );
 
-        return $reflection->newInstanceArgs($requiredDependencies);
+        return $this->storeDependency(
+            $className,
+            $reflection->newInstanceArgs($requiredDependencies)
+        );
+    }
+
+    /**
+     * @template T
+     * @param class-string<T> $className
+     * @param $instance
+     * @return T
+     */
+    private function storeDependency(string $className, $instance)
+    {
+        $this->container->set($className, $instance);
+
+        return $instance;
     }
 
     /**
      * @param ReflectionParameter[] $requiredDependencyParams
      */
-    private function resolveInstanceDependencies(string $parentClassName, array $requiredDependencyParams): array
-    {
+    private function resolveInstanceDependencies(
+        array $requiredDependencyParams,
+        DependencyTracker $dependencyTracker
+    ): array {
         $requiredDependencies = [];
 
         foreach ($requiredDependencyParams as $requiredDependencyParam) {
             $requiredDependencies[] = $this->resolveDependencyFromParameterByClassOrReturnDefault(
-                $parentClassName,
-                $requiredDependencyParam
+                $requiredDependencyParam,
+                $dependencyTracker
             );
         }
 
@@ -68,8 +95,8 @@ class ReflectionObjectResolver implements ObjectResolverInterface
     }
 
     private function resolveDependencyFromParameterByClassOrReturnDefault(
-        string $parentClassName,
-        ReflectionParameter $parameter
+        ReflectionParameter $parameter,
+        DependencyTracker $dependencyTracker
     ) {
         if (!$parameter->hasType()) {
             return null;
@@ -81,12 +108,14 @@ class ReflectionObjectResolver implements ObjectResolverInterface
             return $parameter->isOptional() ? $parameter->getDefaultValue() : null;
         }
 
-        if ($type->getName() === $parentClassName) {
-            throw new CircularDependencyException(
-                sprintf('Class %s contains nested circular dependency', $parentClassName)
-            );
-        }
+        $typeName = $type->getName();
 
-        return $this->resolveInstance($type->getName());
+        $dependencyTracker->trackDependency($typeName);
+
+        try {
+            return $this->resolveWithTracking($typeName, $dependencyTracker);
+        } finally {
+            $dependencyTracker->stopTracking($typeName);
+        }
     }
 }

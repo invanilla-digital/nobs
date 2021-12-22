@@ -61,6 +61,42 @@ class Collection implements Countable, IteratorAggregate, ArrayAccess
 
     public function getIterator(): Iterator
     {
-        return new ArrayIterator($this->items);
+        return new ArrayIterator($this->toArray());
+    }
+
+    public function push(mixed $value): void
+    {
+        $this->items[] = $value;
+    }
+
+    #[Pure]
+    public function contains(mixed $value): bool
+    {
+        return $this->indexOf($value) !== null;
+    }
+
+    public function indexOf(mixed $value): int|string|null
+    {
+        $index = array_search($value, $this->items, true);
+
+        if ($index === false || $index === -1) {
+            return null;
+        }
+
+        return $index;
+    }
+
+    public function remove(string $typeName): void
+    {
+        $index = $this->indexOf($typeName);
+
+        if ($index !== null) {
+            $this->offsetUnset($index);
+        }
+    }
+
+    public function toArray(): array
+    {
+        return $this->items;
     }
 }
