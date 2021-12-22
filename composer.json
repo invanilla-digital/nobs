@@ -1,0 +1,34 @@
+{
+    "name": "invanilla/nobs",
+    "description": "No bullshit PHP framework",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Invanilla\\Nobs\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Invanilla\\Nobs\\Tests\\": "tests"
+        }
+    },
+    "authors": [
+        {
+            "name": "Rudolfs Heimanis",
+            "email": "rudolfs@invanilla.lv"
+        }
+    ],
+    "require": {
+        "psr/container": "^2.0",
+        "psr/cache": "^3.0",
+        "psr/http-message": "^1.0",
+        "psr/http-server-handler": "^1.0",
+        "psr/http-server-middleware": "^1.0",
+        "psr/log": "^3.0",
+        "ext-mbstring": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9"
+    }
+}
