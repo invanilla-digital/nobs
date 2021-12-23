@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Invanilla\Nobs\DependencyInjection\State;
+namespace Invanilla\Nobs\DependencyInjection\Tracking;
 
 use Invanilla\Nobs\DependencyInjection\Exception\CircularDependencyException;
 use Invanilla\Nobs\Iterables\Collection;

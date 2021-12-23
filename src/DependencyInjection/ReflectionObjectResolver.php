@@ -6,12 +6,10 @@ namespace Invanilla\Nobs\DependencyInjection;
 
 use Invanilla\Nobs\Container\Container;
 use Invanilla\Nobs\DependencyInjection\Exception\CircularDependencyException;
-use Invanilla\Nobs\DependencyInjection\State\DependencyTracker;
+use Invanilla\Nobs\DependencyInjection\Tracking\DependencyTracker;
 use Psr\Container\ContainerExceptionInterface;
-use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use ReflectionClass;
-use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
 
@@ -25,6 +23,7 @@ class ReflectionObjectResolver implements ObjectResolverInterface
     /**
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
+     * @throws CircularDependencyException
      */
     public function resolveInstance(string $className)
     {
