@@ -16,7 +16,12 @@ class Container implements ContainerInterface
     ) {
     }
 
-    public function get(string $id)
+    /**
+     * @template T
+     * @param class-string<T>|string $id
+     * @return T|null|mixed
+     */
+    public function get(string $id): mixed
     {
         if ($this->items->offsetExists($id)) {
             return $this->items->offsetGet($id);
